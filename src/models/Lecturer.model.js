@@ -27,6 +27,4 @@ const lecturerSchema = new mongoose.Schema(
   }
 );
 
-lecturerSchema.index({ user: 1 }, { unique: true });
-
 module.exports = mongoose.model("Lecturer", lecturerSchema);
