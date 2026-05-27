@@ -9,6 +9,7 @@ dns.setServers(["8.8.8.8", "1.1.1.1"]);
 const connectDB = require("./config/db");
 const authRoutes = require("./routes/auth.routes");
 const lecturerRoutes = require("./routes/lecturer.routes");
+const courseRoutes = require("./routes/course.routes");
 const errorHandler = require("./middlewares/errorHandler");
 const { seedAdmin } = require("./seeders/adminSeeder");
 
@@ -34,6 +35,7 @@ connectDB().then(() => {
 // Routes
 app.use("/api/auth", authRoutes);
 app.use("/api/lecturers", lecturerRoutes);
+app.use("/api/courses", courseRoutes);
 
 app.get("/", (req, res) => {
   res.send("Server Running");
