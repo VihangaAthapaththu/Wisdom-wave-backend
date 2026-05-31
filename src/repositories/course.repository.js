@@ -12,6 +12,10 @@ class CourseRepository {
     return await Course.find().populate({ path: "lecturer", populate: { path: "user", select: "name email" } });
   }
 
+  async findAllPublished() {
+    return await Course.find({ published: true }).populate({ path: "lecturer", populate: { path: "user", select: "name email" } });
+  }
+
   async findById(id) {
     return await Course.findById(id).populate({ path: "lecturer", populate: { path: "user", select: "name email" } });
   }

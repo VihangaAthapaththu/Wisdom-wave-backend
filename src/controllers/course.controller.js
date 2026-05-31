@@ -31,6 +31,20 @@ const getAllCourses = asyncHandler(async (req, res) => {
   });
 });
 
+
+/** * @desc    Get all published courses
+ * @route   GET /api/courses/published
+ * @access  Public
+ */
+const getAllPublishedCourses = asyncHandler(async (req, res) => {
+  const courses = await courseService.getAllPublishedCourses();
+  res.status(200).json({
+    status: "success",
+    results: courses.length,
+    data: { courses },
+  });
+});
+
 /**
  * @desc    Get a single course by ID
  * @route   GET /api/courses/:id
@@ -97,4 +111,5 @@ module.exports = {
   getMyCourses,
   updateCourse,
   deleteCourse,
+  getAllPublishedCourses,
 };

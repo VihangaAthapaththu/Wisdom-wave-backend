@@ -4,6 +4,7 @@ const router = express.Router();
 const {
   createCourse,
   getAllCourses,
+  getAllPublishedCourses,
   getCourseById,
   getMyCourses,
   updateCourse,
@@ -17,7 +18,8 @@ const { protect, authorize } = require("../middlewares/authMiddleware");
 router.use(protect);
 
 // Any authenticated user can list or view courses
-router.get("/", getAllCourses);
+router.get("/", getAllPublishedCourses);
+router.get("/all", authorize("ADMIN"), getAllCourses);
 
 // Lecturer-specific: get my courses (declare before param routes)
 router.get("/me", authorize("LECTURER"), getMyCourses);

@@ -46,6 +46,10 @@ class CourseService {
     return await courseRepository.findAll();
   }
 
+  async getAllPublishedCourses() {
+    return await courseRepository.findAllPublished();
+  }
+
   async getCourseById(courseId) {
     const course = await courseRepository.findById(courseId);
     if (!course) throw new AppError("Course not found.", 404);
