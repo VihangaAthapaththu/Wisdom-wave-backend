@@ -29,6 +29,11 @@ const studentAssignmentSchema = new mongoose.Schema(
       min: [0, "Marks must be a positive number"],
     },
 
+    feedback: {
+      type: String,
+      trim: true,
+    },
+
     status: {
       type: String,
       enum: ASSIGNMENT_STATUS.values,

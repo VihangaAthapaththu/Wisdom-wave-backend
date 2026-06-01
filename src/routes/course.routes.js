@@ -14,22 +14,63 @@ const {
 const { validateCourseCreate, validateCourseUpdate } = require("../validators/course.validator");
 const { protect, authorize } = require("../middlewares/authMiddleware");
 
-// All course routes require authentication
-router.use(protect);
+const enrollmentService = require("../services/enrollment.service");
+const asyncHandler = require("../middlewares/asyncHandler");
+const { createAssignment, getAssignmentsForCourse } = require("../controllers/assignment.controller");
+const { getMaterials, addMaterial, deleteMaterial } = require("../controllers/material.controller");
 
-// Any authenticated user can list or view courses
+// ── Public routes (no auth required) ─────────────────────────────────────────
 router.get("/", getAllPublishedCourses);
-router.get("/all", authorize("ADMIN"), getAllCourses);
 
-// Lecturer-specific: get my courses (declare before param routes)
-router.get("/me", authorize("LECTURER"), getMyCourses);
+// ── Specific named routes MUST come before /:id ─────────────────────────────
+router.get("/all", protect, authorize("ADMIN"), getAllCourses);
+router.get("/me", protect, authorize("LECTURER"), getMyCourses);
 
-// View single course
+// ── Single course (public) ──────────────────────────────────────────────────
 router.get("/:id", getCourseById);
 
-// Create: Admin only. Update/delete still allow admin or owning lecturer.
-router.post("/", authorize("ADMIN"), validateCourseCreate, createCourse);
-router.put("/:id", authorize("ADMIN", "LECTURER"), validateCourseUpdate, updateCourse);
-router.delete("/:id", authorize("ADMIN", "LECTURER"), deleteCourse);
+router.post("/", protect, authorize("ADMIN"), validateCourseCreate, createCourse);
+router.put("/:id", protect, authorize("ADMIN", "LECTURER"), validateCourseUpdate, updateCourse);
+router.delete("/:id", protect, authorize("ADMIN", "LECTURER"), deleteCourse);
+
+// ── Enrollment sub-routes ─────────────────────────────────────────────────────
+router.post(
+  "/:id/enroll",
+  protect,
+  authorize("STUDENT"),
+  asyncHandler(async (req, res) => {
+    const student = await enrollmentService.enrollStudent(req.params.id, req.user._id);
+    res.status(200).json({ status: "success", message: "Enrolled successfully.", data: { student } });
+  })
+);
+
+router.delete(
+  "/:id/unenroll",
+  protect,
+  authorize("STUDENT"),
+  asyncHandler(async (req, res) => {
+    const student = await enrollmentService.unenrollStudent(req.params.id, req.user._id);
+    res.status(200).json({ status: "success", message: "Unenrolled successfully.", data: { student } });
+  })
+);
+
+router.get(
+  "/:id/enrollments",
+  protect,
+  authorize("ADMIN", "LECTURER"),
+  asyncHandler(async (req, res) => {
+    const students = await enrollmentService.getCourseEnrollments(req.params.id);
+    res.status(200).json({ status: "success", results: students.length, data: { students } });
+  })
+);
+
+// ── Assignment sub-routes ─────────────────────────────────────────────────────
+router.post("/:id/assignments", protect, authorize("ADMIN", "LECTURER"), createAssignment);
+router.get("/:id/assignments", protect, getAssignmentsForCourse);
+
+// ── Material sub-routes ───────────────────────────────────────────────────────
+router.get("/:id/materials", protect, getMaterials);
+router.post("/:id/materials", protect, authorize("ADMIN", "LECTURER"), addMaterial);
+router.delete("/:id/materials/:materialId", protect, authorize("ADMIN", "LECTURER"), deleteMaterial);
 
 module.exports = router;

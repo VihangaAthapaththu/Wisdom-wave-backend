@@ -1,8 +1,11 @@
 const jwt = require("jsonwebtoken");
 const UserRepository = require("../repositories/user.repository");
+const StudentRepository = require("../repositories/student.repository");
 const AppError = require("../utils/AppError");
+const USER_ROLES = require("../enums/userRoles");
 
 const userRepository = new UserRepository();
+const studentRepository = new StudentRepository();
 
 class AuthService {
   /**
@@ -19,7 +22,14 @@ class AuthService {
     }
 
     // Create user
-    const user = await userRepository.create({ name, email, password });
+    const user = await userRepository.create({
+      name,
+      email,
+      password,
+      role: USER_ROLES.STUDENT,
+    });
+
+    await studentRepository.create({ user: user._id });
 
     // Remove password from response
     const userObj = user.toObject();
