@@ -1,5 +1,8 @@
-const express = require("express");
+// Load .env FIRST — before any other require so cloudinary, stripe, etc. see env vars
 const dotenv = require("dotenv");
+dotenv.config();
+
+const express = require("express");
 const dns = require("dns");
 const cookieParser = require("cookie-parser");
 const cors = require("cors");
@@ -14,12 +17,11 @@ const lecturerRoutes = require("./routes/lecturer.routes");
 const studentRoutes = require("./routes/student.routes");
 const courseRoutes = require("./routes/course.routes");
 const paymentRoutes = require("./routes/payment.routes");
+const { stripeWebhook } = require("./controllers/payment.controller");
 const assignmentRoutes = require("./routes/assignment.routes");
 const adminRoutes = require("./routes/admin.routes");
 const errorHandler = require("./middlewares/errorHandler");
 const { seedAdmin } = require("./seeders/adminSeeder");
-
-dotenv.config();
 
 const app = express();
 
@@ -33,6 +35,10 @@ app.use(
     credentials: true,
   })
 );
+// Stripe webhook must receive the raw body for signature verification
+if (process.env.STRIPE_WEBHOOK_SECRET) {
+  app.post('/api/payments/webhook', express.raw({ type: 'application/json' }), stripeWebhook);
+}
 app.use(express.json());
 app.use(cookieParser());
 

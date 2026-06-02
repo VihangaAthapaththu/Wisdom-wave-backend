@@ -28,6 +28,11 @@ const paymentSchema = new mongoose.Schema(
       required: [true, "Payment method is required"],
     },
 
+    stripeSessionId: {
+      type: String,
+      required: false,
+    },
+
     status: {
       type: String,
       enum: PAYMENT_STATUS.values,

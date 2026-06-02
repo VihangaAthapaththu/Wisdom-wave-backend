@@ -20,7 +20,7 @@ const getMaterials = asyncHandler(async (req, res) => {
  * @access  Admin | Lecturer (course owner)
  */
 const addMaterial = asyncHandler(async (req, res) => {
-  const material = await materialService.addMaterial(req.params.id, req.body, req.user);
+  const material = await materialService.addMaterial(req.params.id, req.body, req.user, req.file);
 
   res.status(201).json({
     status: "success",

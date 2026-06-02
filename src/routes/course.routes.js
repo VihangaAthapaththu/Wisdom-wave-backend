@@ -19,6 +19,10 @@ const asyncHandler = require("../middlewares/asyncHandler");
 const { createAssignment, getAssignmentsForCourse } = require("../controllers/assignment.controller");
 const { getMaterials, addMaterial, deleteMaterial } = require("../controllers/material.controller");
 
+const multer = require("multer");
+const storage = multer.memoryStorage();
+const upload = multer({ storage });
+
 // ── Public routes (no auth required) ─────────────────────────────────────────
 router.get("/", getAllPublishedCourses);
 
@@ -64,13 +68,26 @@ router.get(
   })
 );
 
+// Admin direct-enroll: enroll any student without payment
+router.post(
+  "/:id/admin-enroll",
+  protect,
+  authorize("ADMIN"),
+  asyncHandler(async (req, res) => {
+    const { studentId } = req.body;
+    if (!studentId) return res.status(400).json({ status: "fail", message: "studentId is required." });
+    await enrollmentService.adminEnrollStudent(req.params.id, studentId);
+    res.status(200).json({ status: "success", message: "Student enrolled successfully." });
+  })
+);
+
 // ── Assignment sub-routes ─────────────────────────────────────────────────────
 router.post("/:id/assignments", protect, authorize("ADMIN", "LECTURER"), createAssignment);
 router.get("/:id/assignments", protect, getAssignmentsForCourse);
 
 // ── Material sub-routes ───────────────────────────────────────────────────────
 router.get("/:id/materials", protect, getMaterials);
-router.post("/:id/materials", protect, authorize("ADMIN", "LECTURER"), addMaterial);
+router.post("/:id/materials", protect, authorize("ADMIN", "LECTURER"), upload.single('file'), addMaterial);
 router.delete("/:id/materials/:materialId", protect, authorize("ADMIN", "LECTURER"), deleteMaterial);
 
 module.exports = router;

@@ -105,6 +105,28 @@ class EnrollmentService {
       $addToSet: { enrolledCourses: courseId },
     });
   }
+
+  /**
+   * Admin direct-enroll: add any student to a course without payment.
+   * @param {string} courseId
+   * @param {string} studentId  - Student._id
+   */
+  async adminEnrollStudent(courseId, studentId) {
+    const course = await Course.findById(courseId);
+    if (!course) throw new AppError("Course not found.", 404);
+
+    const student = await studentRepository.findById(studentId);
+    if (!student) throw new AppError("Student not found.", 404);
+
+    const alreadyEnrolled = student.enrolledCourses.some(
+      (id) => id.toString() === courseId.toString()
+    );
+    if (alreadyEnrolled) throw new AppError("Student is already enrolled in this course.", 409);
+
+    await Student.findByIdAndUpdate(studentId, {
+      $addToSet: { enrolledCourses: courseId },
+    });
+  }
 }
 
 module.exports = new EnrollmentService();

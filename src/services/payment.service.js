@@ -31,14 +31,16 @@ class PaymentService {
     );
     if (alreadyEnrolled) throw new AppError("Already enrolled in this course.", 409);
 
-    // Check if there's already a PENDING payment for this course
+    // If there's already a PENDING payment, return it so the controller can issue/reuse a Stripe session
     const Payment = require("../models/Payment.model");
     const existingPending = await Payment.findOne({
       student: student._id,
       course: courseId,
       status: PAYMENT_STATUS.PENDING,
     });
-    if (existingPending) throw new AppError("A pending payment already exists for this course.", 409);
+    if (existingPending) {
+      return await paymentRepository.findById(existingPending._id);
+    }
 
     const payment = await paymentRepository.create({
       student: student._id,
@@ -49,6 +51,14 @@ class PaymentService {
     });
 
     return await paymentRepository.findById(payment._id);
+  }
+
+  async attachStripeSession(paymentId, sessionId) {
+    return await paymentRepository.update(paymentId, { stripeSessionId: sessionId });
+  }
+
+  async getPaymentById(paymentId) {
+    return await paymentRepository.findById(paymentId);
   }
 
   /**
