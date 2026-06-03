@@ -16,7 +16,7 @@ const { protect, authorize } = require("../middlewares/authMiddleware");
 
 const enrollmentService = require("../services/enrollment.service");
 const asyncHandler = require("../middlewares/asyncHandler");
-const { createAssignment, getAssignmentsForCourse } = require("../controllers/assignment.controller");
+const { createAssignment, getAssignmentsForCourse, getMySubmissionsForCourse } = require("../controllers/assignment.controller");
 const { getMaterials, addMaterial, deleteMaterial } = require("../controllers/material.controller");
 
 const multer = require("multer");
@@ -84,6 +84,7 @@ router.post(
 // ── Assignment sub-routes ─────────────────────────────────────────────────────
 router.post("/:id/assignments", protect, authorize("ADMIN", "LECTURER"), createAssignment);
 router.get("/:id/assignments", protect, getAssignmentsForCourse);
+router.get("/:id/my-submissions", protect, authorize("STUDENT"), getMySubmissionsForCourse);
 
 // ── Material sub-routes ───────────────────────────────────────────────────────
 router.get("/:id/materials", protect, getMaterials);

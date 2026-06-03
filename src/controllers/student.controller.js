@@ -70,6 +70,16 @@ const updateMyProfile = asyncHandler(async (req, res) => {
 });
 
 /**
+ * @desc    Get KPI summary for the logged-in student
+ * @route   GET /api/students/me/kpis
+ * @access  Student only
+ */
+const getMyKpis = asyncHandler(async (req, res) => {
+  const kpis = await studentService.getMyKpis(req.user._id);
+  res.status(200).json({ status: "success", data: { kpis } });
+});
+
+/**
  * @desc    Deactivate a student account
  * @route   DELETE /api/students/:id
  * @access  Admin only
@@ -87,6 +97,7 @@ module.exports = {
   registerStudent,
   getAllStudents,
   getMyProfile,
+  getMyKpis,
   updateMyProfile,
   deactivateStudent,
 };

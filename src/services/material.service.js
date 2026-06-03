@@ -35,8 +35,9 @@ class MaterialService {
 
     if (user.role === "STUDENT") {
       const student = await studentRepository.findByUserId(user._id);
-      const enrolled = student?.enrolledCourses.some((id) => id.toString() === courseId.toString());
-      // Decision: require enrollment to view materials (even for published courses)
+      const enrolled = student?.enrolledCourses.some(
+        (c) => (c._id || c).toString() === courseId.toString()
+      );
       if (!enrolled) throw new AppError("You must be enrolled to access course materials.", 403);
       return course;
     }

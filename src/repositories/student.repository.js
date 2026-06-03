@@ -37,7 +37,15 @@ class StudentRepository {
    * @returns {Promise<Object|null>}
    */
   async findByUserId(userId) {
-    return await Student.findOne({ user: userId }).populate("user", "name email isActive createdAt role");
+    return await Student.findOne({ user: userId })
+      .populate("user", "name email isActive createdAt role")
+      .populate({
+        path: "enrolledCourses",
+        populate: {
+          path: "lecturer",
+          populate: { path: "user", select: "name email" },
+        },
+      });
   }
 
   /**

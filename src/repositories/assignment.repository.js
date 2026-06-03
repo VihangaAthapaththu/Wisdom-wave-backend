@@ -63,6 +63,19 @@ class AssignmentRepository {
       })
       .sort({ createdAt: -1 });
   }
+
+  async findMySubmissionsForCourse(courseId, studentId) {
+    const assignments = await Assignment.find({ course: courseId }).select("_id");
+    const assignmentIds = assignments.map((a) => a._id);
+    return await StudentAssignment.find({
+      assignment: { $in: assignmentIds },
+      student: studentId,
+    });
+  }
+
+  async deleteSubmission(assignmentId, studentId) {
+    return await StudentAssignment.findOneAndDelete({ assignment: assignmentId, student: studentId });
+  }
 }
 
 module.exports = AssignmentRepository;

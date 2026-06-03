@@ -2,6 +2,10 @@ const UserRepository = require("../repositories/user.repository");
 const StudentRepository = require("../repositories/student.repository");
 const AppError = require("../utils/AppError");
 const USER_ROLES = require("../enums/userRoles");
+const Course = require("../models/Course.model");
+const CourseMaterial = require("../models/CourseMaterial.model");
+const Assignment = require("../models/Assignment.model");
+const StudentAssignment = require("../models/StudentAssignment.model");
 
 const userRepository = new UserRepository();
 const studentRepository = new StudentRepository();
@@ -108,6 +112,39 @@ class StudentService {
     }
 
     return await studentRepository.findById(studentId);
+  }
+
+  /**
+   * Get KPI summary for the logged-in student.
+   * @param {string} userId
+   * @returns {Promise<Object>} { totalEnrolled, totalLearningHours, pendingAssignments, totalMaterials }
+   */
+  async getMyKpis(userId) {
+    const student = await studentRepository.findByUserId(userId);
+    if (!student) throw new AppError("Student profile not found.", 404);
+
+    const courseIds = (student.enrolledCourses || []).map((c) => c._id || c);
+
+    const [learningHoursResult, totalMaterials, allAssignmentIds] = await Promise.all([
+      Course.aggregate([
+        { $match: { _id: { $in: courseIds } } },
+        { $group: { _id: null, total: { $sum: "$duration" } } },
+      ]),
+      CourseMaterial.countDocuments({ course: { $in: courseIds } }),
+      Assignment.distinct("_id", { course: { $in: courseIds } }),
+    ]);
+
+    const submittedCount = await StudentAssignment.countDocuments({
+      student: student._id,
+      assignment: { $in: allAssignmentIds },
+    });
+
+    return {
+      totalEnrolled: courseIds.length,
+      totalLearningHours: learningHoursResult[0]?.total || 0,
+      totalMaterials,
+      pendingAssignments: Math.max(0, allAssignmentIds.length - submittedCount),
+    };
   }
 
   /**

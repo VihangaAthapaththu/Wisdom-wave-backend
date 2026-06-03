@@ -88,7 +88,8 @@ const submitAssignment = asyncHandler(async (req, res) => {
   const submission = await assignmentService.submitAssignment(
     req.params.id,
     req.user._id,
-    req.body
+    req.body,
+    req.file
   );
 
   res.status(200).json({
@@ -145,6 +146,24 @@ const getMyAssignments = asyncHandler(async (req, res) => {
   });
 });
 
+/**
+ * @route   GET /api/courses/:id/my-submissions
+ * @access  Student
+ */
+const getMySubmissionsForCourse = asyncHandler(async (req, res) => {
+  const submissions = await assignmentService.getMySubmissionsForCourse(req.params.id, req.user._id);
+  res.status(200).json({ status: "success", data: { submissions } });
+});
+
+/**
+ * @route   DELETE /api/assignments/:id/submit
+ * @access  Student
+ */
+const deleteMySubmission = asyncHandler(async (req, res) => {
+  await assignmentService.deleteMySubmission(req.params.id, req.user._id);
+  res.status(200).json({ status: "success", message: "Submission removed." });
+});
+
 module.exports = {
   createAssignment,
   getAssignmentsForCourse,
@@ -155,4 +174,6 @@ module.exports = {
   getSubmissions,
   gradeSubmission,
   getMyAssignments,
+  getMySubmissionsForCourse,
+  deleteMySubmission,
 };

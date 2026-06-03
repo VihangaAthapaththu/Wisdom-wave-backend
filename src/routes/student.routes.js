@@ -5,6 +5,7 @@ const {
   registerStudent,
   getAllStudents,
   getMyProfile,
+  getMyKpis,
   updateMyProfile,
   deactivateStudent,
 } = require("../controllers/student.controller");
@@ -20,9 +21,10 @@ router.post("/", authorize("ADMIN"), registerStudent);
 router.get("/", authorize("ADMIN"), getAllStudents);
 router.delete("/:id", authorize("ADMIN"), deactivateStudent);
 
-// Student profile (must be before /:id to avoid collision)
+// Student profile — all /me/* routes must come before /:id
 router.get("/me", authorize("STUDENT"), getMyProfile);
 router.put("/me", authorize("STUDENT"), updateMyProfile);
+router.get("/me/kpis", authorize("STUDENT"), getMyKpis);
 
 // Student's enrolled courses
 router.get(

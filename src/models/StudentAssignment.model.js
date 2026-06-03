@@ -20,6 +20,11 @@ const studentAssignmentSchema = new mongoose.Schema(
       trim: true,
     },
 
+    submissionFileExt: {
+      type: String,
+      trim: true,
+    },
+
     submittedAt: {
       type: Date,
     },
@@ -49,64 +54,49 @@ const studentAssignmentSchema = new mongoose.Schema(
 studentAssignmentSchema.index({ assignment: 1, student: 1 }, { unique: true });
 
 // Compute and set status on save based on assignment.dueDate
-studentAssignmentSchema.pre("save", async function (next) {
-  if (!this.isModified("submittedAt") && !this.isModified("assignment") && !this.isModified("status")) return next();
+studentAssignmentSchema.pre("save", async function () {
+  if (!this.isModified("submittedAt") && !this.isModified("assignment") && !this.isModified("status")) return;
+  if (!this.submittedAt) return;
 
-  if (!this.submittedAt) return next();
+  const Assignment = mongoose.model("Assignment");
+  const assignmentDoc = await Assignment.findById(this.assignment).select("dueDate");
+  if (!assignmentDoc) return;
 
-  try {
-    const Assignment = mongoose.model("Assignment");
-    const assignmentDoc = await Assignment.findById(this.assignment).select("dueDate");
-    if (!assignmentDoc) return next();
-
-    if (assignmentDoc.dueDate && this.submittedAt > assignmentDoc.dueDate) {
-      this.status = ASSIGNMENT_STATUS.LATE_SUBMISSION;
-    } else {
-      this.status = ASSIGNMENT_STATUS.SUBMITTED;
-    }
-
-    next();
-  } catch (err) {
-    next(err);
-  }
+  this.status = assignmentDoc.dueDate && this.submittedAt > assignmentDoc.dueDate
+    ? ASSIGNMENT_STATUS.LATE_SUBMISSION
+    : ASSIGNMENT_STATUS.SUBMITTED;
 });
 
 // Handle updates via findOneAndUpdate / findByIdAndUpdate
-studentAssignmentSchema.pre("findOneAndUpdate", async function (next) {
+studentAssignmentSchema.pre("findOneAndUpdate", async function () {
   const update = this.getUpdate();
-  if (!update) return next();
+  if (!update) return;
 
   const submittedAt = update.submittedAt || (update.$set && update.$set.submittedAt);
   let assignmentId = update.assignment || (update.$set && update.$set.assignment);
 
-  if (!submittedAt && !assignmentId) return next();
+  if (!submittedAt && !assignmentId) return;
 
-  try {
-    const Assignment = mongoose.model("Assignment");
+  const Assignment = mongoose.model("Assignment");
 
-    if (!assignmentId) {
-      const doc = await this.model.findOne(this.getQuery()).select("assignment");
-      assignmentId = doc && doc.assignment;
-    }
-
-    if (!assignmentId) return next();
-
-    const assignmentDoc = await Assignment.findById(assignmentId).select("dueDate");
-    if (!assignmentDoc) return next();
-
-    const date = submittedAt ? new Date(submittedAt) : null;
-    if (!date) return next();
-
-    const isLate = assignmentDoc.dueDate && date > assignmentDoc.dueDate;
-    const newStatus = isLate ? ASSIGNMENT_STATUS.LATE_SUBMISSION : ASSIGNMENT_STATUS.SUBMITTED;
-
-    if (update.$set) update.$set.status = newStatus; else update.status = newStatus;
-    if (typeof this.setUpdate === "function") this.setUpdate(update);
-
-    next();
-  } catch (err) {
-    next(err);
+  if (!assignmentId) {
+    const doc = await this.model.findOne(this.getQuery()).select("assignment");
+    assignmentId = doc && doc.assignment;
   }
+
+  if (!assignmentId) return;
+
+  const assignmentDoc = await Assignment.findById(assignmentId).select("dueDate");
+  if (!assignmentDoc) return;
+
+  const date = submittedAt ? new Date(submittedAt) : null;
+  if (!date) return;
+
+  const isLate = assignmentDoc.dueDate && date > assignmentDoc.dueDate;
+  const newStatus = isLate ? ASSIGNMENT_STATUS.LATE_SUBMISSION : ASSIGNMENT_STATUS.SUBMITTED;
+
+  if (update.$set) update.$set.status = newStatus; else update.status = newStatus;
+  if (typeof this.setUpdate === "function") this.setUpdate(update);
 });
 
 // Virtual: isLate (available when assignment is populated)
