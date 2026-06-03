@@ -2,6 +2,9 @@ const UserRepository = require("../repositories/user.repository");
 const LecturerRepository = require("../repositories/lecturer.repository");
 const AppError = require("../utils/AppError");
 const USER_ROLES = require("../enums/userRoles");
+const CourseMaterial = require("../models/CourseMaterial.model");
+const Student = require("../models/Student.model");
+const Course = require("../models/Course.model");
 
 const userRepository = new UserRepository();
 const lecturerRepository = new LecturerRepository();
@@ -107,6 +110,27 @@ class LecturerService {
     }
 
     return await lecturerRepository.findById(lecturerId);
+  }
+
+  /**
+   * Get KPI summary for the logged-in lecturer.
+   * @param {string} userId
+   * @returns {Promise<Object>} { totalCourses, publishedCourses, totalStudents, totalMaterials }
+   */
+  async getMyKpis(userId) {
+    const lecturer = await lecturerRepository.findByUserId(userId);
+    if (!lecturer) throw new AppError("Lecturer profile not found.", 404);
+
+    const courseIds = lecturer.courses || [];
+
+    const [totalCourses, publishedCourses, totalMaterials, totalStudents] = await Promise.all([
+      courseIds.length,
+      Course.countDocuments({ _id: { $in: courseIds }, isPublished: true }),
+      CourseMaterial.countDocuments({ course: { $in: courseIds } }),
+      Student.countDocuments({ enrolledCourses: { $in: courseIds } }),
+    ]);
+
+    return { totalCourses, publishedCourses, totalMaterials, totalStudents };
   }
 
   /**

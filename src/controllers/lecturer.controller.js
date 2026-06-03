@@ -67,6 +67,20 @@ const getMyProfile = asyncHandler(async (req, res) => {
 });
 
 /**
+ * @desc    Get KPI summary for the logged-in lecturer
+ * @route   GET /api/lecturers/me/kpis
+ * @access  Lecturer only
+ */
+const getMyKpis = asyncHandler(async (req, res) => {
+  const kpis = await lecturerService.getMyKpis(req.user._id);
+
+  res.status(200).json({
+    status: "success",
+    data: { kpis },
+  });
+});
+
+/**
  * @desc    Update a lecturer
  * @route   PUT /api/lecturers/:id
  * @access  Admin only
@@ -106,6 +120,7 @@ module.exports = {
   getAllLecturers,
   getLecturerById,
   getMyProfile,
+  getMyKpis,
   updateLecturer,
   deactivateLecturer,
 };
