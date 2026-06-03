@@ -13,6 +13,10 @@ const lecturerRepository = new LecturerRepository();
 const MAX_FILE_SIZE = 50 * 1024 * 1024; // 50MB
 const ALLOWED_MIMES = [
   "application/pdf",
+  "application/msword",
+  "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+  "application/vnd.ms-excel",
+  "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
 ];
 
 class MaterialService {
@@ -65,15 +69,25 @@ class MaterialService {
       throw new AppError("Cloudinary is not configured. Check CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY, CLOUDINARY_API_SECRET in .env.", 500);
     }
 
-    // Build a public_id WITHOUT extension — Cloudinary appends the detected format automatically,
-    // so including the extension in public_id produces double extensions like .pdf.pdf
     const timestamp = Date.now();
     const nameNoExt = (file.originalname || "file").replace(/\.[^/.]+$/, "");
     const safeName = nameNoExt.replace(/[^a-zA-Z0-9._-]/g, "_");
     const publicId = `course_materials/${courseId}/${timestamp}-${safeName}`;
 
+    // Documents (PDF, Word, Excel) must upload as "raw" so Cloudinary stores them
+    // as plain files rather than renderable images. This keeps the URL under /raw/upload/
+    // and avoids the 401 that occurs when fl_attachment is used on unsigned image URLs.
+    const DOCUMENT_MIMES = new Set([
+      "application/pdf",
+      "application/msword",
+      "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+      "application/vnd.ms-excel",
+      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    ]);
+    const resourceType = DOCUMENT_MIMES.has(file.mimetype) ? "raw" : "auto";
+
     return new Promise((resolve, reject) => {
-      const uploadStream = cloudinary.uploader.upload_stream({ resource_type: "auto", public_id: publicId }, (error, result) => {
+      const uploadStream = cloudinary.uploader.upload_stream({ resource_type: resourceType, public_id: publicId }, (error, result) => {
         if (error) {
           console.error("[Cloudinary] upload error:", error.message || error);
           return reject(error);
@@ -113,7 +127,12 @@ class MaterialService {
       }
     }
 
-    return await materialRepository.create({ course: courseId, title, fileUrl: finalUrl });
+    return await materialRepository.create({
+      course: courseId,
+      title,
+      fileUrl: finalUrl,
+      mimeType: file ? file.mimetype : null,
+    });
   }
 
   async deleteMaterial(courseId, materialId, user) {

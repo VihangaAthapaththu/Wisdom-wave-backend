@@ -17,7 +17,12 @@ const courseMaterialSchema = new mongoose.Schema(
     fileUrl: {
       type: String,
       required: [true, "File URL is required"],
-    }
+    },
+
+    mimeType: {
+      type: String,
+      default: null,
+    },
   },
   {
     timestamps: true,
