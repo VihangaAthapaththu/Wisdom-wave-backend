@@ -2,9 +2,12 @@ const AssignmentRepository = require("../repositories/assignment.repository");
 const StudentRepository = require("../repositories/student.repository");
 const LecturerRepository = require("../repositories/lecturer.repository");
 const Course = require("../models/Course.model");
+const Student = require("../models/Student.model");
 const AppError = require("../utils/AppError");
 const cloudinary = require("../config/cloudinary");
 const streamifier = require("streamifier");
+const notificationService = require("./notification.service");
+const { assignmentPublishedEmail, assignmentUpdatedEmail } = require("../utils/emailTemplates");
 
 const assignmentRepository = new AssignmentRepository();
 const studentRepository = new StudentRepository();
@@ -36,7 +39,12 @@ class AssignmentService {
 
     await this._assertManageAccess(courseId, user);
 
-    return await assignmentRepository.create({ course: courseId, title, description, dueDate });
+    const assignment = await assignmentRepository.create({ course: courseId, title, description, dueDate });
+
+    // Notify enrolled students asynchronously (non-blocking)
+    this._notifyEnrolledStudents(course, assignment, "ASSIGNMENT_PUBLISHED").catch(() => {});
+
+    return assignment;
   }
 
   /**
@@ -78,7 +86,12 @@ class AssignmentService {
 
     await this._assertManageAccess(assignment.course._id || assignment.course, user);
 
-    return await assignmentRepository.update(assignmentId, data);
+    const updated = await assignmentRepository.update(assignmentId, data);
+
+    // Notify enrolled students of the update asynchronously
+    this._notifyEnrolledStudents(updated.course || assignment.course, updated, "ASSIGNMENT_UPDATED", data).catch(() => {});
+
+    return updated;
   }
 
   /**
@@ -195,6 +208,72 @@ class AssignmentService {
   /**
    * Delete the current student's own submission for an assignment.
    */
+  async _notifyEnrolledStudents(course, assignment, type, changedData = {}) {
+    try {
+      const courseId = course._id || course;
+      const courseDoc = await Course.findById(courseId)
+        .populate({ path: "lecturer", populate: { path: "user", select: "name email" } })
+        .lean();
+      if (!courseDoc) return;
+
+      const students = await Student.find({ enrolledCourses: courseId })
+        .populate("user", "name email")
+        .lean();
+
+      const ctaUrl = `${process.env.CLIENT_URL || "http://localhost:5173"}/student-dashboard`;
+
+      for (const student of students) {
+        if (!student.user) continue;
+
+        const isPublished = type === "ASSIGNMENT_PUBLISHED";
+        const title = isPublished
+          ? `New Assignment: ${assignment.title}`
+          : `Assignment Updated: ${assignment.title}`;
+        const message = isPublished
+          ? `A new assignment "${assignment.title}" has been published in ${courseDoc.title}.`
+          : `The assignment "${assignment.title}" in ${courseDoc.title} has been updated.`;
+
+        let emailTemplate;
+        if (isPublished) {
+          emailTemplate = assignmentPublishedEmail({
+            studentName:     student.user.name,
+            courseName:      courseDoc.title,
+            assignmentTitle: assignment.title,
+            dueDate:         assignment.dueDate,
+            lecturerName:    courseDoc.lecturer?.user?.name || "—",
+            ctaUrl,
+          });
+        } else {
+          const changes = [];
+          if (changedData.dueDate)      changes.push("due date");
+          if (changedData.description)  changes.push("instructions");
+          emailTemplate = assignmentUpdatedEmail({
+            studentName:       student.user.name,
+            courseName:        courseDoc.title,
+            assignmentTitle:   assignment.title,
+            dueDate:           assignment.dueDate,
+            changeDescription: changes.length ? `${changes.join(" and ")} changed` : null,
+            ctaUrl,
+          });
+        }
+
+        await notificationService.createAndEmit(student.user._id, type, {
+          title,
+          message,
+          data: {
+            assignmentId: assignment._id,
+            courseId:     courseDoc._id,
+            courseName:   courseDoc.title,
+            dueDate:      assignment.dueDate,
+          },
+          emailPayload: { to: student.user.email, ...emailTemplate },
+        });
+      }
+    } catch (err) {
+      console.error("[AssignmentService] Notification error:", err.message);
+    }
+  }
+
   async deleteMySubmission(assignmentId, userId) {
     const assignment = await assignmentRepository.findById(assignmentId);
     if (!assignment) throw new AppError("Assignment not found.", 404);
