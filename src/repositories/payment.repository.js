@@ -25,7 +25,7 @@ class PaymentRepository {
   }
 
   async update(id, updateData) {
-    return await Payment.findByIdAndUpdate(id, updateData, { new: true, runValidators: true })
+    return await Payment.findByIdAndUpdate(id, updateData, { returnDocument: "after", runValidators: true })
       .populate({ path: "student", populate: { path: "user", select: "name email" } })
       .populate("course", "title fee");
   }

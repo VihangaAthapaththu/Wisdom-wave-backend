@@ -33,6 +33,4 @@ const studentSchema = new mongoose.Schema(
   }
 );
 
-studentSchema.index({ user: 1 }, { unique: true });
-
 module.exports = mongoose.model("Student", studentSchema);

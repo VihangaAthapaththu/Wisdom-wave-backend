@@ -48,7 +48,7 @@ class LecturerRepository {
    */
   async update(id, updateData) {
     return await Lecturer.findByIdAndUpdate(id, updateData, {
-      new: true,
+      returnDocument: "after",
       runValidators: true,
     }).populate("user", "name email isActive createdAt");
   }

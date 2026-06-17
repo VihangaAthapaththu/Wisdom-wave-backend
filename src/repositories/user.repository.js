@@ -59,7 +59,7 @@ class UserRepository {
    */
   async update(id, updateData) {
     return await User.findByIdAndUpdate(id, updateData, {
-      new: true,
+      returnDocument: "after",
       runValidators: true,
     });
   }

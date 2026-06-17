@@ -60,7 +60,7 @@ class CourseRepository {
 
   async update(id, updateData) {
     const course = await Course.findByIdAndUpdate(id, updateData, {
-      new: true,
+      returnDocument: "after",
       runValidators: true,
     }).populate(LECTURER_POPULATE);
     if (!course) return null;

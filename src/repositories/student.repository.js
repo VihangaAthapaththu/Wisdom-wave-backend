@@ -56,7 +56,7 @@ class StudentRepository {
    */
   async update(id, updateData) {
     return await Student.findByIdAndUpdate(id, updateData, {
-      new: true,
+      returnDocument: "after",
       runValidators: true,
     }).populate("user", "name email isActive createdAt role");
   }

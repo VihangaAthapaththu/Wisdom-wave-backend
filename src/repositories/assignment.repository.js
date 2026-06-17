@@ -16,7 +16,7 @@ class AssignmentRepository {
 
   async update(id, data) {
     return await Assignment.findByIdAndUpdate(id, data, {
-      new: true,
+      returnDocument: "after",
       runValidators: true,
     }).populate("course", "title");
   }
@@ -31,7 +31,7 @@ class AssignmentRepository {
     return await StudentAssignment.findOneAndUpdate(
       { assignment: assignmentId, student: studentId },
       { $set: data },
-      { new: true, upsert: true, runValidators: true, setDefaultsOnInsert: true }
+      { returnDocument: "after", upsert: true, runValidators: true, setDefaultsOnInsert: true }
     )
       .populate({ path: "assignment", select: "title dueDate course" })
       .populate({ path: "student", populate: { path: "user", select: "name email" } });
@@ -51,7 +51,7 @@ class AssignmentRepository {
     return await StudentAssignment.findOneAndUpdate(
       { assignment: assignmentId, student: studentId },
       { $set: { marks, feedback } },
-      { new: true }
+      { returnDocument: "after" }
     ).populate({ path: "student", populate: { path: "user", select: "name email" } });
   }
 
