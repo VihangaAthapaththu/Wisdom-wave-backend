@@ -2,12 +2,14 @@
 const dotenv = require("dotenv");
 dotenv.config();
 
+const http = require("http");
 const express = require("express");
 const dns = require("dns");
 const cookieParser = require("cookie-parser");
 const cors = require("cors");
 const helmet = require("helmet");
 const rateLimit = require("express-rate-limit");
+const { initSocket } = require("./socket/socket");
 
 dns.setServers(["8.8.8.8", "1.1.1.1"]);
 
@@ -21,9 +23,13 @@ const { stripeWebhook } = require("./controllers/payment.controller");
 const assignmentRoutes = require("./routes/assignment.routes");
 const adminRoutes = require("./routes/admin.routes");
 const blogRoutes = require("./routes/blog.routes");
+const progressRoutes = require("./routes/progress.routes");
+const notificationRoutes = require("./routes/notification.routes");
+const chatRoutes = require("./routes/chat.routes");
 const errorHandler = require("./middlewares/errorHandler");
 const { seedAdmin } = require("./seeders/adminSeeder");
 const { seedBlogData } = require("./seeders/blogSeeder");
+const { startDeadlineScheduler } = require("./services/deadline.scheduler");
 
 const app = express();
 
@@ -68,6 +74,9 @@ app.use("/api/payments", paymentRoutes);
 app.use("/api/assignments", assignmentRoutes);
 app.use("/api/admin", adminRoutes);
 app.use("/api/blogs", blogRoutes);
+app.use("/api/progress", progressRoutes);
+app.use("/api/notifications", notificationRoutes);
+app.use("/api/chat", chatRoutes);
 
 app.get("/", (req, res) => {
   res.send("Server Running");
@@ -77,6 +86,10 @@ app.get("/", (req, res) => {
 app.use(errorHandler);
 
 const PORT = process.env.PORT || 8000;
-app.listen(PORT, () => {
+const httpServer = http.createServer(app);
+initSocket(httpServer);
+
+httpServer.listen(PORT, () => {
   console.log(`Server started on port ${PORT}`);
+  startDeadlineScheduler();
 });
