@@ -20,8 +20,10 @@ const paymentRoutes = require("./routes/payment.routes");
 const { stripeWebhook } = require("./controllers/payment.controller");
 const assignmentRoutes = require("./routes/assignment.routes");
 const adminRoutes = require("./routes/admin.routes");
+const blogRoutes = require("./routes/blog.routes");
 const errorHandler = require("./middlewares/errorHandler");
 const { seedAdmin } = require("./seeders/adminSeeder");
+const { seedBlogData } = require("./seeders/blogSeeder");
 
 const app = express();
 
@@ -54,6 +56,7 @@ const authLimiter = rateLimit({
 // Connect Database & Seed Admin
 connectDB().then(() => {
   seedAdmin();
+  seedBlogData();
 });
 
 // Routes
@@ -64,6 +67,7 @@ app.use("/api/courses", courseRoutes);
 app.use("/api/payments", paymentRoutes);
 app.use("/api/assignments", assignmentRoutes);
 app.use("/api/admin", adminRoutes);
+app.use("/api/blogs", blogRoutes);
 
 app.get("/", (req, res) => {
   res.send("Server Running");
