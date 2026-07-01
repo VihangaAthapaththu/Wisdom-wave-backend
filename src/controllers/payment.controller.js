@@ -1,6 +1,7 @@
 const paymentService = require("../services/payment.service");
 const StudentRepository = require("../repositories/student.repository");
 const asyncHandler = require("../middlewares/asyncHandler");
+const AppError = require("../utils/AppError");
 
 const studentRepository = new StudentRepository();
 
@@ -55,27 +56,44 @@ const createPayment = asyncHandler(async (req, res) => {
 
     // Create a fresh session if needed
     if (!sessionUrl) {
-      console.log(`[Stripe] Creating new checkout session for payment ${payment._id}, amount: Rs ${payment.amount}`);
-      const session = await stripe.checkout.sessions.create({
-        payment_method_types: ["card"],
-        mode: "payment",
-        line_items: [
-          {
-            price_data: {
-              currency: "lkr",
-              product_data: {
-                name: payment.course?.title || "Course Payment",
-                description: payment.course?.description || undefined,
+      const currency = process.env.STRIPE_CURRENCY || "usd";
+      const unitAmount = Math.round((payment.amount || 0) * 100);
+      console.log(`[Stripe] Creating new checkout session for payment ${payment._id}, amount: ${unitAmount} ${currency.toUpperCase()}`);
+
+      let session;
+      try {
+        session = await stripe.checkout.sessions.create({
+          payment_method_types: ["card"],
+          mode: "payment",
+          line_items: [
+            {
+              price_data: {
+                currency,
+                product_data: {
+                  name: payment.course?.title || "Course Payment",
+                  description: payment.course?.description || undefined,
+                },
+                unit_amount: unitAmount,
               },
-              unit_amount: Math.round((payment.amount || 0) * 100),
+              quantity: 1,
             },
-            quantity: 1,
-          },
-        ],
-        metadata: { paymentId: String(payment._id) },
-        success_url: successUrl,
-        cancel_url: cancelUrl,
-      });
+          ],
+          metadata: { paymentId: String(payment._id) },
+          success_url: successUrl,
+          cancel_url: cancelUrl,
+        });
+      } catch (stripeErr) {
+        console.error("[Stripe] Session creation failed:", {
+          type: stripeErr.type,
+          code: stripeErr.code,
+          message: stripeErr.message,
+          statusCode: stripeErr.statusCode,
+        });
+        throw new AppError(
+          `Payment gateway error: ${stripeErr.message || "Could not create checkout session."}`,
+          502
+        );
+      }
 
       try {
         await paymentService.attachStripeSession(payment._id, session.id);

@@ -64,9 +64,8 @@ const errorHandler = (err, req, res, next) => {
   const statusCode = error.statusCode || 500;
   const status = error.status || "error";
 
-  // Log unexpected errors in development
-  if (statusCode === 500) {
-    console.error("ERROR 💥:", err);
+  if (statusCode >= 400) {
+    console.error(`ERROR ${statusCode} 💥:`, err.message || err);
   }
 
   res.status(statusCode).json({
