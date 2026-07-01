@@ -1,11 +1,16 @@
 const jwt = require("jsonwebtoken");
+const crypto = require("crypto");
 const UserRepository = require("../repositories/user.repository");
 const StudentRepository = require("../repositories/student.repository");
 const AppError = require("../utils/AppError");
 const USER_ROLES = require("../enums/userRoles");
+const { sendEmail } = require("./email.service");
+const { passwordResetEmail } = require("../utils/emailTemplates");
 
 const userRepository = new UserRepository();
 const studentRepository = new StudentRepository();
+
+const hashToken = (token) => crypto.createHash("sha256").update(token).digest("hex");
 
 class AuthService {
   /**
@@ -86,6 +91,49 @@ class AuthService {
     return jwt.sign({ id: userId }, process.env.JWT_SECRET, {
       expiresIn: process.env.JWT_EXPIRE || "1d",
     });
+  }
+
+  /**
+   * Request a password reset. Generates a token, stores its hash + expiry on the
+   * user, and emails a reset link. Always resolves without revealing whether the
+   * email exists (prevents account enumeration).
+   * @param {string} email
+   */
+  async requestPasswordReset(email) {
+    const user = await userRepository.findByEmail(email);
+    if (!user || !user.isActive) return; // silent — no enumeration
+
+    const rawToken = crypto.randomBytes(32).toString("hex");
+    const resetPasswordToken = hashToken(rawToken);
+    const resetPasswordExpires = Date.now() + 30 * 60 * 1000; // 30 minutes
+
+    await userRepository.update(user._id, { resetPasswordToken, resetPasswordExpires });
+
+    const clientUrl = process.env.CLIENT_URL || process.env.FRONTEND_URL || "http://localhost:5173";
+    const ctaUrl = `${clientUrl}/reset-password?token=${rawToken}`;
+
+    const { subject, html } = passwordResetEmail({ name: user.name, ctaUrl });
+    await sendEmail({ to: user.email, subject, html });
+  }
+
+  /**
+   * Reset a password using a raw token from the emailed link.
+   * @param {string} rawToken
+   * @param {string} newPassword
+   */
+  async resetPassword(rawToken, newPassword) {
+    if (!rawToken) throw new AppError("Invalid or expired reset link.", 400);
+
+    const user = await userRepository.findByResetToken(hashToken(rawToken));
+    if (!user) throw new AppError("Invalid or expired reset link.", 400);
+
+    // Setting password triggers the pre-save hook which hashes it
+    user.password = newPassword;
+    user.resetPasswordToken = undefined;
+    user.resetPasswordExpires = undefined;
+    await user.save();
+
+    return { message: "Password reset successfully. You can now log in." };
   }
 
   /**

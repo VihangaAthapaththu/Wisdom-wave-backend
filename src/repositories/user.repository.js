@@ -52,6 +52,19 @@ class UserRepository {
   }
 
   /**
+   * Find a user by a (hashed) password-reset token that has not expired.
+   * Includes the password field so it can be re-hashed on save.
+   * @param {string} hashedToken
+   * @returns {Promise<Object|null>}
+   */
+  async findByResetToken(hashedToken) {
+    return await User.findOne({
+      resetPasswordToken: hashedToken,
+      resetPasswordExpires: { $gt: Date.now() },
+    }).select("+password +resetPasswordToken +resetPasswordExpires");
+  }
+
+  /**
    * Update a user record.
    * @param {string} id
    * @param {Object} updateData

@@ -90,4 +90,17 @@ function assignmentUpdatedEmail({ studentName, courseName, assignmentTitle, dueD
   };
 }
 
-module.exports = { assignmentPublishedEmail, deadlineReminderEmail, assignmentUpdatedEmail };
+function passwordResetEmail({ name, ctaUrl }) {
+  return {
+    subject: "Reset your Wisdom Wave password",
+    html: `<body style="${BASE_STYLE}">${card(`
+      <p style="margin:0 0 8px;color:#374151;font-size:15px;">Hi <strong>${name || "there"}</strong>,</p>
+      <p style="color:#6b7280;font-size:14px;margin:0 0 8px;">We received a request to reset your password. Click the button below to choose a new one.</p>
+      <p style="color:#6b7280;font-size:13px;margin:0 0 4px;">This link expires in 30 minutes. If you didn't request this, you can safely ignore this email — your password won't change.</p>
+      ${cta(ctaUrl, "Reset Password")}
+      <p style="color:#9ca3af;font-size:12px;margin:24px 0 0;word-break:break-all;">Or paste this link into your browser:<br/>${ctaUrl}</p>
+    `)}</body>`,
+  };
+}
+
+module.exports = { assignmentPublishedEmail, deadlineReminderEmail, assignmentUpdatedEmail, passwordResetEmail };

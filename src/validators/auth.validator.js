@@ -86,4 +86,48 @@ const validateLogin = [
   validate,
 ];
 
-module.exports = { validateRegister, validateLogin };
+/**
+ * Validation rules for requesting a password reset.
+ */
+const validateForgotPassword = [
+  body("email")
+    .trim()
+    .notEmpty()
+    .withMessage("Email is required")
+    .isEmail()
+    .withMessage("Please provide a valid email address")
+    .normalizeEmail(),
+
+  validate,
+];
+
+/**
+ * Validation rules for resetting a password with a token.
+ */
+const validateResetPassword = [
+  body("token").notEmpty().withMessage("Reset token is required"),
+
+  body("password")
+    .notEmpty()
+    .withMessage("Password is required")
+    .isLength({ min: 6 })
+    .withMessage("Password must be at least 6 characters")
+    .matches(/[A-Z]/)
+    .withMessage("Password must contain at least one uppercase letter")
+    .matches(/[0-9]/)
+    .withMessage("Password must contain at least one number"),
+
+  body("confirmPassword")
+    .notEmpty()
+    .withMessage("Please confirm your password")
+    .custom((value, { req }) => {
+      if (value !== req.body.password) {
+        throw new Error("Passwords do not match");
+      }
+      return true;
+    }),
+
+  validate,
+];
+
+module.exports = { validateRegister, validateLogin, validateForgotPassword, validateResetPassword };

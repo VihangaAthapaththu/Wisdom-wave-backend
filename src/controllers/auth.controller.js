@@ -66,6 +66,39 @@ const logout = asyncHandler(async (req, res) => {
 });
 
 /**
+ * @desc    Request a password reset link
+ * @route   POST /api/auth/forgot-password
+ * @access  Public
+ */
+const forgotPassword = asyncHandler(async (req, res) => {
+  const { email } = req.body;
+
+  await authService.requestPasswordReset(email);
+
+  // Generic response regardless of whether the email exists
+  res.status(200).json({
+    status: "success",
+    message: "If an account exists for that email, a password reset link has been sent.",
+  });
+});
+
+/**
+ * @desc    Reset password using a token from the emailed link
+ * @route   POST /api/auth/reset-password
+ * @access  Public
+ */
+const resetPassword = asyncHandler(async (req, res) => {
+  const { token, password } = req.body;
+
+  const result = await authService.resetPassword(token, password);
+
+  res.status(200).json({
+    status: "success",
+    message: result.message,
+  });
+});
+
+/**
  * @desc    Get current logged-in user
  * @route   GET /api/auth/me
  * @access  Private
@@ -79,4 +112,4 @@ const getMe = asyncHandler(async (req, res) => {
   });
 });
 
-module.exports = { register, login, logout, getMe };
+module.exports = { register, login, logout, forgotPassword, resetPassword, getMe };
