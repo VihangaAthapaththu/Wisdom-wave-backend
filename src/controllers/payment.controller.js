@@ -55,14 +55,14 @@ const createPayment = asyncHandler(async (req, res) => {
 
     // Create a fresh session if needed
     if (!sessionUrl) {
-      console.log(`[Stripe] Creating new checkout session for payment ${payment._id}, amount: $${payment.amount}`);
+      console.log(`[Stripe] Creating new checkout session for payment ${payment._id}, amount: Rs ${payment.amount}`);
       const session = await stripe.checkout.sessions.create({
         payment_method_types: ["card"],
         mode: "payment",
         line_items: [
           {
             price_data: {
-              currency: "usd",
+              currency: "lkr",
               product_data: {
                 name: payment.course?.title || "Course Payment",
                 description: payment.course?.description || undefined,

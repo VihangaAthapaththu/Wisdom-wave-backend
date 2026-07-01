@@ -16,7 +16,7 @@ function getTransporter() {
   return transporter;
 }
 
-async function sendEmail({ to, subject, html }) {
+async function sendEmail({ to, subject, html, replyTo }) {
   if (!process.env.EMAIL_USER || !process.env.EMAIL_PASS) {
     if (process.env.NODE_ENV !== "production") return; // silently skip in dev if not configured
     throw new Error("Email credentials not configured.");
@@ -27,6 +27,7 @@ async function sendEmail({ to, subject, html }) {
       to,
       subject,
       html,
+      ...(replyTo && { replyTo }),
     });
   } catch (err) {
     // Never let email failure crash the main request

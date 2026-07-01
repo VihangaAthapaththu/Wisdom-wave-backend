@@ -19,7 +19,7 @@ class EnrollmentService {
     if (!course) throw new AppError("Course not found.", 404);
     if (!course.isPublished) throw new AppError("This course is not available for enrollment.", 403);
 
-    const student = await studentRepository.findByUserId(userId);
+    const student = await studentRepository.findOrCreateByUserId(userId);
     if (!student) throw new AppError("Student profile not found.", 404);
 
     // Check already enrolled
@@ -50,7 +50,7 @@ class EnrollmentService {
    * @returns {Promise<Object>} updated student
    */
   async unenrollStudent(courseId, userId) {
-    const student = await studentRepository.findByUserId(userId);
+    const student = await studentRepository.findOrCreateByUserId(userId);
     if (!student) throw new AppError("Student profile not found.", 404);
 
     await Student.findByIdAndUpdate(student._id, {
@@ -83,13 +83,7 @@ class EnrollmentService {
    * @returns {Promise<Array>}
    */
   async getStudentEnrollments(userId) {
-    const student = await Student.findOne({ user: userId })
-      .populate({
-        path: "enrolledCourses",
-        populate: { path: "lecturer", populate: { path: "user", select: "name" } },
-      })
-      .lean();
-
+    const student = await studentRepository.findOrCreateByUserId(userId);
     if (!student) throw new AppError("Student profile not found.", 404);
 
     return student.enrolledCourses || [];

@@ -26,6 +26,7 @@ const blogRoutes = require("./routes/blog.routes");
 const progressRoutes = require("./routes/progress.routes");
 const notificationRoutes = require("./routes/notification.routes");
 const chatRoutes = require("./routes/chat.routes");
+const contactRoutes = require("./routes/contact.routes");
 const errorHandler = require("./middlewares/errorHandler");
 const { seedAdmin } = require("./seeders/adminSeeder");
 const { seedBlogData } = require("./seeders/blogSeeder");
@@ -77,6 +78,7 @@ app.use("/api/blogs", blogRoutes);
 app.use("/api/progress", progressRoutes);
 app.use("/api/notifications", notificationRoutes);
 app.use("/api/chat", chatRoutes);
+app.use("/api/contact", contactRoutes);
 
 app.get("/", (req, res) => {
   res.send("Server Running");

@@ -11,19 +11,20 @@ const {
 } = require("../controllers/student.controller");
 const { getMyAssignments } = require("../controllers/assignment.controller");
 const { protect, authorize } = require("../middlewares/authMiddleware");
+const { validateRegisterStudent, validateUpdateProfile } = require("../validators/student.validator");
 const enrollmentService = require("../services/enrollment.service");
 const asyncHandler = require("../middlewares/asyncHandler");
 
 router.use(protect);
 
 // Admin-facing
-router.post("/", authorize("ADMIN"), registerStudent);
+router.post("/", authorize("ADMIN"), validateRegisterStudent, registerStudent);
 router.get("/", authorize("ADMIN"), getAllStudents);
 router.delete("/:id", authorize("ADMIN"), deactivateStudent);
 
 // Student profile — all /me/* routes must come before /:id
 router.get("/me", authorize("STUDENT"), getMyProfile);
-router.put("/me", authorize("STUDENT"), updateMyProfile);
+router.put("/me", authorize("STUDENT"), validateUpdateProfile, updateMyProfile);
 router.get("/me/kpis", authorize("STUDENT"), getMyKpis);
 
 // Student's enrolled courses

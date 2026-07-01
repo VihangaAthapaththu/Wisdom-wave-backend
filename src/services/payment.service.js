@@ -22,7 +22,7 @@ class PaymentService {
     if (!course.isPublished) throw new AppError("This course is not available.", 403);
     if (course.fee <= 0) throw new AppError("This course is free. Use the enroll endpoint directly.", 400);
 
-    const student = await studentRepository.findByUserId(userId);
+    const student = await studentRepository.findOrCreateByUserId(userId);
     if (!student) throw new AppError("Student profile not found.", 404);
 
     // Check already enrolled
@@ -112,7 +112,7 @@ class PaymentService {
    * @returns {Promise<Array>}
    */
   async getStudentPayments(userId) {
-    const student = await studentRepository.findByUserId(userId);
+    const student = await studentRepository.findOrCreateByUserId(userId);
     if (!student) throw new AppError("Student profile not found.", 404);
     return await paymentRepository.findByStudent(student._id);
   }

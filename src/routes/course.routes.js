@@ -12,6 +12,7 @@ const {
 } = require("../controllers/course.controller");
 
 const { validateCourseCreate, validateCourseUpdate } = require("../validators/course.validator");
+const { validateAdminEnroll } = require("../validators/enrollment.validator");
 const { protect, authorize } = require("../middlewares/authMiddleware");
 
 const enrollmentService = require("../services/enrollment.service");
@@ -34,8 +35,8 @@ router.get("/me", protect, authorize("LECTURER"), getMyCourses);
 router.get("/:id", getCourseById);
 
 router.post("/", protect, authorize("ADMIN"), validateCourseCreate, createCourse);
-router.put("/:id", protect, authorize("ADMIN", "LECTURER"), validateCourseUpdate, updateCourse);
-router.delete("/:id", protect, authorize("ADMIN", "LECTURER"), deleteCourse);
+router.put("/:id", protect, authorize("ADMIN"), validateCourseUpdate, updateCourse);
+router.delete("/:id", protect, authorize("ADMIN"), deleteCourse);
 
 // ── Enrollment sub-routes ─────────────────────────────────────────────────────
 router.post(
@@ -73,9 +74,9 @@ router.post(
   "/:id/admin-enroll",
   protect,
   authorize("ADMIN"),
+  validateAdminEnroll,
   asyncHandler(async (req, res) => {
     const { studentId } = req.body;
-    if (!studentId) return res.status(400).json({ status: "fail", message: "studentId is required." });
     await enrollmentService.adminEnrollStudent(req.params.id, studentId);
     res.status(200).json({ status: "success", message: "Student enrolled successfully." });
   })

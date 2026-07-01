@@ -10,10 +10,11 @@ const {
   failPayment,
   verifySession,
 } = require("../controllers/payment.controller");
+const { validateCreatePayment } = require("../validators/payment.validator");
 
 router.use(protect);
 
-router.post("/", authorize("STUDENT"), createPayment);
+router.post("/", authorize("STUDENT"), validateCreatePayment, createPayment);
 router.get("/", authorize("ADMIN"), getAllPayments);
 router.get("/mine", authorize("STUDENT"), getMyPayments);
 router.get("/:id", authorize("STUDENT", "ADMIN"), getPayment);

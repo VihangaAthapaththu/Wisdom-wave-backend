@@ -49,6 +49,29 @@ class StudentRepository {
   }
 
   /**
+   * Find a student by user reference, creating the profile if it is missing.
+   * Self-heals orphaned STUDENT users (e.g. seeded/legacy accounts created
+   * before registration atomically created a Student document), which is the
+   * root cause of the "Student profile not found" enrollment error.
+   * @param {string} userId
+   * @returns {Promise<Object>}
+   */
+  async findOrCreateByUserId(userId) {
+    let student = await this.findByUserId(userId);
+    if (!student) {
+      // upsert-style create; guard against a race creating a duplicate
+      try {
+        await Student.create({ user: userId });
+      } catch (err) {
+        // ignore duplicate-key races — another request created it first
+        if (err?.code !== 11000) throw err;
+      }
+      student = await this.findByUserId(userId);
+    }
+    return student;
+  }
+
+  /**
    * Update a student profile.
    * @param {string} id
    * @param {Object} updateData
